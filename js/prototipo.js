@@ -1,9 +1,10 @@
 'use strict';
-// Protótipo de alta fidelidade para demonstração de interações de IHC.
-// NÃO contém algoritmos científicos nem consultas à rede.
+// Protótipo de alta fidelidade
 const $ = id => document.getElementById(id);
 const escapeHTML = value => String(value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 const months = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+
 const lines = [
  {id:'L1',color:'#2566bb',name:'Linha 1 · Azul',stops:['Jabaquara','São Judas','Santa Cruz','Ana Rosa','Paraíso','São Bento','Sé','Luz','Santana','Tucuruvi']},
  {id:'L2',color:'#268a68',name:'Linha 2 · Verde',stops:['Vila Prudente','Tamanduateí','Chácara Klabin','Ana Rosa','Paraíso','Brigadeiro','Consolação','Clínicas','Vila Madalena']},
@@ -11,11 +12,16 @@ const lines = [
  {id:'L4',color:'#c0a42f',name:'Linha 4 · Amarela',stops:['Luz','República','Higienópolis-Mackenzie','Paulista','Faria Lima','Pinheiros','Butantã','São Paulo-Morumbi','Vila Sônia']},
  {id:'L5',color:'#9868b4',name:'Linha 5 · Lilás',stops:['Capão Redondo','Campo Limpo','Santo Amaro','Brooklin','Borba Gato','Santa Cruz','Chácara Klabin']}
 ];
+
+
+
 const stations = [...new Set(lines.flatMap(l=>l.stops))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
 const nodes = lines.flatMap((line,li)=>line.stops.map((name,i)=>({name,line:line.name,color:line.color,x:0.09+i*.82/Math.max(1,line.stops.length-1),y:.16+li*.17})));
 let selectedStation=null, selectedLine='', routePath=[], simDay=0, playing=null, simReady=false, tech=false;
 const stationLine = name => lines.find(l=>l.stops.includes(name))?.name || 'Rede ilustrativa';
 const message = (title,body) => `<div class="hint"><b>${title}</b><p style="margin:5px 0 0">${body}</p></div>`;
+
+
 function goto(id){
  if(!$(id)||!$(id).classList.contains('view'))id='cidadao';
  document.querySelectorAll('.view').forEach(el=>el.classList.toggle('current',el.id===id));
@@ -26,6 +32,7 @@ function goto(id){
  window.scrollTo(0,0);requestAnimationFrame(drawAll);
 }
 function selectOptions(el, options){el.innerHTML=options.map(o=>`<option value="${escapeHTML(o)}">${escapeHTML(o)}</option>`).join('')}
+
 function draw(kind){
  const canvas=$('map-'+kind);if(!canvas || canvas.getClientRects().length===0)return;
  const r=canvas.getBoundingClientRect(),w=r.width,h=r.height,dpr=Math.min(window.devicePixelRatio||1,2);if(w===0||h===0)return;
@@ -41,6 +48,7 @@ function draw(kind){
  });
  canvas._nodes=nodes;canvas._w=w;canvas._h=h;
 }
+
 function drawAll(){['home','route','sim'].forEach(draw)}
 function selectStation(name){selectedStation=name;$('station-title').textContent=name;$('station-body').innerHTML=`<p class="fine">${escapeHTML(stationLine(name))}</p>${message('Informações de referência','Aqui ficarão disponíveis a demanda mensal, as conexões e as métricas da estação na versão completa.')}`;$('station-popup').classList.remove('off');drawAll()}
 function setup(){
@@ -77,10 +85,13 @@ function setup(){
  $('avisos-modelo').innerHTML=message('Limites desta versão','A malha exibida foi reduzida exclusivamente para testar a interface. Os dados, pesos, métricas epidemiológicas e algoritmos originais não são executados nesta demonstração.');
  renderHighlights();setTech(false);window.addEventListener('resize',drawAll);window.addEventListener('hashchange',()=>goto(location.hash.slice(1)||'cidadao'));goto(location.hash.slice(1)||'cidadao');
 }
+
+
+
 function setTech(v){tech=v;$('cidadao').dataset.profile=v?'tecnico':'cidadao';$('mode-cit').setAttribute('aria-pressed',String(!v));$('mode-tec').setAttribute('aria-pressed',String(v));if(routePath.length)renderRoute()}
 function renderHighlights(){const relevant=selectedLine?lines.filter(l=>l.id===selectedLine):lines;$('entenda-destaques').innerHTML=relevant.flatMap(l=>l.stops.slice(0,3).map(s=>`<button type="button" class="station-highlight" data-station="${escapeHTML(s)}"><span class="station-index">●</span><span class="station-name">${escapeHTML(s)}<small>${escapeHTML(l.name)}</small></span><span class="station-value">Ver</span></button>`)).join('');$('entenda-destaques').querySelectorAll('[data-station]').forEach(el=>el.onclick=()=>selectStation(el.dataset.station));draw('home')}
 function renderRoute(){const a=$('origem').value,b=$('destino').value;if(a===b){$('route-result').innerHTML='<p class="error" role="alert">Escolha estações diferentes para embarque e desembarque.</p>';routePath=[];draw('route');return}
- // Demonstração de interface: os pontos não são um caminho ferroviário calculado.
+ // DEMONSTRAÇÃO DA GUI
  routePath=[a,b];$('route-maplabel').textContent='Seleção ilustrativa (sem cálculo)';
  const head=`<h2 class="subhead">Exemplo de consulta</h2><div class="trip-stations"><div><span class="trip-dot dot-teal"></span><small>Embarque</small><strong>${escapeHTML(a)}</strong></div><div class="trip-rail">↓</div><div><span class="trip-dot dot-pink"></span><small>Desembarque</small><strong>${escapeHTML(b)}</strong></div></div>`;
  $('route-result').innerHTML=head+'<div class="sectiongap">'+message('Demonstração de interação','O formulário e o mapa respondem às escolhas. A rota e a probabilidade não foram calculadas; os pontos destacam apenas origem e destino.')+'</div>'+(tech?`<div class="grid twocol sectiongap"><div class="outcard"><h3>BFS</h3><p class="fine">Espaço reservado ao percurso com menor número de arestas.</p></div><div class="outcard"><h3>Dijkstra</h3><p class="fine">Espaço reservado ao percurso de menor custo ponderado.</p></div></div><p class="chart-axes">Gráfico comparativo previsto: eixo X = etapas do percurso; eixo Y = probabilidade acumulada. Nenhum valor foi calculado.</p>`:'<div class="hint sectiongap">No sistema completo, esta área apresenta a comparação de percursos, a lista de estações e orientações ao cidadão.</div>');draw('route')}
